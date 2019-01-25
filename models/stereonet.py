@@ -81,15 +81,13 @@ class StereoNet(nn.Module):
         output = self.cost_volume_filter(cost_volume)  # [batch_size, channel, disparity, h, w]
         # print("output.shape")
         # print(output.shape)  # torch.Size([8, 1, 10, 9, 25])
-        disparity_low = soft_argmin(output, self.batch_size)
+        disparity_low = soft_argmin(output)
 
         return disparity_low  # low resolution disparity map
 
     def forward_stage2(self, feature_l, feature_r):
         cost_v_l = CostVolume(feature_l, feature_r, "left", method=self.cost_volume_method, k=4, batch_size=self.batch_size)
-        # print("cost_v_l.shape")
-        # print(cost_v_l.shape)  # torch.Size([8, 12, 32, 11, 27])
-        # cost_v_r = CostVolume(feature_r, feature_l, "right", k=4, batch_size=self.batch_size)
+
         disparity_low = self.forward_once_2(cost_v_l)
         # disparity_low_r = self.forward_once_2(cost_v_r)
 
@@ -196,15 +194,11 @@ class ResBlock(nn.Module):
         self.d = dilation
 
     def forward(self, x):
-        # print("in_ch = %d, out_ch = %d, p = %d, d = %d, s = %s" % (self.in_ch, self.out_ch, self.p, self.d, self.stride))
         residual = x
-        # print("residual.shape")
-        # print(residual.shape)
 
         out = self.conv1(x)
         out = self.bn1(out)
-        # print("out.shape")
-        # print(out.shape)
+
         out = self.relu1(out)
         out = self.conv2(out)
         out = self.bn2(out)
@@ -216,21 +210,14 @@ class ResBlock(nn.Module):
         return out
 
 
-def soft_argmin(cost_volume, batch_size, D=192):
-
+def soft_argmin(cost_volume):
     """Remove single-dimensional entries from the shape of an array."""
-    # print("soft_argmin cost_volume.shape")
-    # print(cost_volume.shape)  # torch.Size([8, 1, 10, 9, 25])
     cost_volume_D_squeeze = torch.squeeze(cost_volume)
 
-    # print("cost_volume_D_squeeze.shape")
-    # print(cost_volume_D_squeeze.shape)  # torch.Size([8, 10, 9, 25])
-    # softmax = nn.Softmax(dim=0)
     softmax = nn.Softmax(dim=1)
     disparity_softmax = softmax(cost_volume_D_squeeze)
 
     d_grid = torch.arange(cost_volume_D_squeeze.shape[1], dtype=torch.float)
-    # print(d_grid.shape)
     d_grid = d_grid.reshape(-1, 1, 1)
     d_grid = d_grid.repeat((cost_volume.shape[0], 1, cost_volume.shape[3], cost_volume.shape[4]))
     d_grid = d_grid.to('cuda')
