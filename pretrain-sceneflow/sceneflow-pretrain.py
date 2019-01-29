@@ -21,7 +21,7 @@ parser.add_argument('--maxdisp', type=int ,default=160,
                     help='maxium disparity')
 parser.add_argument('--datapath', default='/datasets/sceneflow/',
                     help='datapath')
-parser.add_argument('--epochs', type=int, default=22,
+parser.add_argument('--epochs', type=int, default=20,
                     help='number of epochs to train')
 # parser.add_argument('--loadmodel', default= None, help='load model')
 parser.add_argument('--loadmodel', default='/checkpoints', help='load model')
@@ -67,7 +67,6 @@ optimizer = RMSprop(model.parameters(), lr=1e-3, weight_decay=0.0001)
 epoch_start = 0
 total_train_loss_save = 0
 
-# if args.loadmodel is not None:
 checkpoint_path = root_path + "/checkpoints/checkpoint_sceneflow.tar"
 if args.loadmodel is not None and os.path.exists(checkpoint_path):
     state_dict = torch.load(checkpoint_path)

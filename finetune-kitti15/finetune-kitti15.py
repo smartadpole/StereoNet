@@ -73,6 +73,13 @@ optimizer = optim.Adam(model.parameters(), lr=0.001, betas=(0.9, 0.999))
 # optimizer = RMSprop(model.parameters(), lr=1e-3, weight_decay=0.0001)
 scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
 
+pretrained_model_path = root_path + "/checkpoints/checkpoint_sceneflow.tar"
+if args.loadmodel is not None and os.path.exists(pretrained_model_path):
+    state_dict = torch.load(pretrained_model_path)
+    model.load_state_dict(state_dict['state_dict'])
+    total_train_loss_save = state_dict['total_train_loss']
+    print("-- pretrained model loaded --")
+
 print('Number of model parameters: {}'.format(sum([p.data.nelement() for p in model.parameters()])))
 
 
