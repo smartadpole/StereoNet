@@ -13,8 +13,8 @@ Hope the coder can release the code as soon as possible so I can rectify the cod
 
 ### Experiment Results till now
 1. train and test on SceneFlow datasets:
-    + epoch 22 total training loss = 4.633
-    + average test EPE = 4.182
+    + epoch 22 total training loss = 3.956
+    + average test EPE = 3.496
 2. different finetuning on kitti 15 and result
     + 300 epochs, max 3 pixel error rate = 80.893 on kitti val 
         ```
@@ -27,6 +27,14 @@ Hope the coder can release the code as soon as possible so I can rectify the cod
         scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
         ```
     + 300 epochs, max 3 pixel error rate = 90.054 on kitti val 
+        ```
+        optimizer = optim.Adam(model.parameters(), lr=0.001, betas=(0.9, 0.999))
+        if epoch <= 200:
+            lr = 0.001
+        else:
+            lr = 0.0001    
+        ```
+    + 2000 epochs, max 3 pixel error rate = 93.293 on kitti val, after 4.89 hours finetune 
         ```
         optimizer = optim.Adam(model.parameters(), lr=0.001, betas=(0.9, 0.999))
         if epoch <= 200:
