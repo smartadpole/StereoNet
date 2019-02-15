@@ -98,7 +98,7 @@ class StereoNet(nn.Module):
         # print(left.shape)
 
         # d_high_l = nn.functional.upsample_bilinear(disparity_low_l, [left.shape[2], left.shape[3]])
-        d_high = nn.functional.interpolate(disparity_low, [left.shape[2], left.shape[3]])
+        d_high = nn.functional.interpolate(disparity_low, [left.shape[2], left.shape[3]], mode='bilinear', align_corners=True)
         # d_high_r = nn.functional.upsample_bilinear(disparity_low_r, [right.shape[2], right.shape[3]])
         # d_high_r = nn.functional.interpolate(disparity_low_r, [right.shape[2], right.shape[3]])
 
@@ -212,7 +212,7 @@ class ResBlock(nn.Module):
 
 def soft_argmin(cost_volume):
     """Remove single-dimensional entries from the shape of an array."""
-    cost_volume_D_squeeze = torch.squeeze(cost_volume)
+    cost_volume_D_squeeze = torch.squeeze(cost_volume, dim=1)
 
     softmax = nn.Softmax(dim=1)
     disparity_softmax = softmax(cost_volume_D_squeeze)
