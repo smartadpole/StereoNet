@@ -34,7 +34,7 @@ Hope the coder can release the code as soon as possible so I can rectify the cod
         else:
             lr = 0.0001    
         ```
-    + 2000 epochs, max 3 pixel error rate = 93.293 on kitti val, after 4.89 hours finetune 
+    + 2000 epochs, max 3 pixel error rate = 93.680 on kitti val, after 4.98 hours finetune 
         ```
         optimizer = optim.Adam(model.parameters(), lr=0.001, betas=(0.9, 0.999))
         if epoch <= 200:
