@@ -75,7 +75,7 @@ class StereoNet(nn.Module):
 
         output = self.cost_volume_filter(cost_volume)  # [batch_size, channel, disparity, h, w]
 
-        disparity_low = soft_argmin(output)
+        disparity_low = output
 
         return disparity_low  # low resolution disparity map
 
@@ -83,13 +83,14 @@ class StereoNet(nn.Module):
         cost_v_l = CostVolume(feature_l, feature_r, "left", method=self.cost_volume_method, k=4, batch_size=self.batch_size)
 
         disparity_low = self.forward_once_2(cost_v_l)
-        # disparity_low_r = self.forward_once_2(cost_v_r)
+        disparity_low = torch.squeeze(disparity_low, dim=1)
 
         return disparity_low
 
     def forward_stage3(self, disparity_low, left):
         """upsample and concatenate"""
         d_high = nn.functional.interpolate(disparity_low, [left.shape[2], left.shape[3]], mode='bilinear', align_corners=True)
+        d_high = soft_argmin(d_high)
 
         d_concat = torch.cat([d_high, left], dim=1)
 
@@ -105,8 +106,12 @@ class StereoNet(nn.Module):
 
         d_initial_l = nn.functional.interpolate(disparity_low_l, [left.shape[2], left.shape[3]], mode='bilinear',
                                                 align_corners=True)
+        d_initial_l = soft_argmin(d_initial_l)
         d_refined_l = self.forward_stage3(disparity_low_l, left)
-        d_final_l = nn.ReLU()(d_initial_l + d_refined_l)
+        d_final_l = d_initial_l + d_refined_l
+        # d_final_l = soft_argmin(d_initial_l + d_refined_l)
+
+        d_final_l = nn.ReLU()(d_final_l)
 
         return d_final_l
 
@@ -173,14 +178,14 @@ class ResBlock(nn.Module):
 
 def soft_argmin(cost_volume):
     """Remove single-dimensional entries from the shape of an array."""
-    cost_volume_D_squeeze = torch.squeeze(cost_volume, dim=1)
+    # cost_volume_D_squeeze = torch.squeeze(cost_volume, dim=1)
 
     softmax = nn.Softmax(dim=1)
-    disparity_softmax = softmax(cost_volume_D_squeeze)
+    disparity_softmax = softmax(-cost_volume)
 
-    d_grid = torch.arange(cost_volume_D_squeeze.shape[1], dtype=torch.float)
+    d_grid = torch.arange(cost_volume.shape[1], dtype=torch.float)
     d_grid = d_grid.reshape(-1, 1, 1)
-    d_grid = d_grid.repeat((cost_volume.shape[0], 1, cost_volume.shape[3], cost_volume.shape[4]))
+    d_grid = d_grid.repeat((cost_volume.shape[0], 1, cost_volume.shape[2], cost_volume.shape[3])) # [batchSize, 1, h, w]
     d_grid = d_grid.to('cuda')
 
     tmp = disparity_softmax*d_grid
