@@ -4,9 +4,7 @@ Customized implementation of the [Stereonet guided hierarchical refinement for r
 ![The network archtecture of StereoNet](https://raw.githubusercontent.com/zhixuanli/StereoNet/master/stereo-net-structure.png)
 
 ## Attention: Not accomplished yet
-1. Till 2018-12-22, the [https://github.com/meteorshowers/StereoNet](https://github.com/meteorshowers/StereoNet) still not released the code.
-And that's the only version of the StereoNet now.
-Hope the coder can release the code as soon as possible so I can rectify the codes in my repository. 
+1. Stereo Matching is not my main research field, and this repo is created for a homework. So maybe it's not very completed, but I have tried to make it perfect. If you need a better version, please refer to [https://github.com/meteorshowers/StereoNet](https://github.com/meteorshowers/StereoNet).
 2. The approach of computing the cost volume in the StereoNet paper is subtracting the padding image and the other image. Here I changed it to concatenate the two images. If you want to change it to the paper's way, just set it when you initialize the net.
 3. Only training and testing on the KITTI 2015 train dataset is not enough, the best performance has achieved 74.5% (pixels with error smaller than 1). After pretraining on SceneFlow and finetune on KITTI15, the acc achieves 90.054%, not as good as the acc in paper. I have try hard to achieve the accuracy in paper, but still can't. Maybe some details are wrong. 
  
