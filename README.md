@@ -1,6 +1,12 @@
 # Pytorch StereoNet
 Customized implementation of the [Stereonet guided hierarchical refinement for real-time edge-aware depth prediction](http://openaccess.thecvf.com/content_ECCV_2018/papers/Sameh_Khamis_StereoNet_Guided_Hierarchical_ECCV_2018_paper.pdf)
 
+****************************************************************
+I have just noticed that the share link above is not available now. Please download from this link: https://drive.google.com/file/d/1CO2hGMphCZsNcJPFAk2q4-QG_0zM0LpU/view?usp=sharing.
+
+This project is the first one after I have learned Pytorch. And it's the homework for my CV course. I'm focusing on the segmentation field at present. Thanks for your attention.
+****************************************************************
+
 ![The network archtecture of StereoNet](https://raw.githubusercontent.com/zhixuanli/StereoNet/master/stereo-net-structure.png)
 
 ## Attention: Not accomplished yet
