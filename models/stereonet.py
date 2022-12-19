@@ -99,9 +99,7 @@ class StereoNet(nn.Module):
         return d_refined
 
     def forward(self, left, right):
-
         left_feature, right_feature = self.forward_stage1(left, right)
-
         disparity_low_l = self.forward_stage2(left_feature, right_feature)
 
         d_initial_l = nn.functional.interpolate(disparity_low_l, [left.shape[2], left.shape[3]], mode='bilinear',
@@ -181,7 +179,7 @@ def soft_argmin(cost_volume):
     # cost_volume_D_squeeze = torch.squeeze(cost_volume, dim=1)
 
     softmax = nn.Softmax(dim=1)
-    disparity_softmax = softmax(-cost_volume)
+    disparity_softmax = softmax(cost_volume * -1)
 
     d_grid = torch.arange(cost_volume.shape[1], dtype=torch.float)
     d_grid = d_grid.reshape(-1, 1, 1)
