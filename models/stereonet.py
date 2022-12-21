@@ -4,11 +4,11 @@ import torch.nn.functional as F
 from utils.cost_volume import CostVolume
 
 
-class StereoNet(nn.Module):
+class CostVolumeFilter(nn.Module):
     def __init__(self, batch_size, cost_volume_method):
-        super(StereoNet, self).__init__()
+        super(CostVolumeFilter, self).__init__()
+        """ using 3d conv to instead the Euclidean distance"""
 
-        self.batch_size = batch_size
         self.cost_volume_method = cost_volume_method
         cost_volume_channel = 32
         if cost_volume_method == "subtract":
@@ -17,6 +17,30 @@ class StereoNet(nn.Module):
             cost_volume_channel = 64
         else:
             print("cost_volume_method is not right")
+
+        cost_volume_channel *= 12
+        self.cost_volume_filter = nn.Sequential(
+            MetricBlock(cost_volume_channel, 32),
+            MetricBlock(32, 32),
+            MetricBlock(32, 32),
+            MetricBlock(32, 32),
+            nn.Conv2d(32, 12, 3, padding=1),
+        )
+
+    def forward(self, x):
+        x = torch.flatten(x, start_dim=1, end_dim=2)
+        x = self.cost_volume_filter(x)
+        x = x.unsqueeze(dim=1)
+
+        return x
+
+
+class StereoNet(nn.Module):
+    def __init__(self, batch_size, cost_volume_method):
+        super(StereoNet, self).__init__()
+
+        self.batch_size = batch_size
+        self.cost_volume_method = cost_volume_method
 
         self.downsampling = nn.Sequential(
             nn.Conv2d(3, 32, 5, stride=2, padding=2),
@@ -35,14 +59,7 @@ class StereoNet(nn.Module):
             nn.Conv2d(32, 32, 3, 1, 1),
         )
 
-        """ using 3d conv to instead the Euclidean distance"""
-        self.cost_volume_filter = nn.Sequential(
-            MetricBlock(cost_volume_channel, 32),
-            MetricBlock(32, 32),
-            MetricBlock(32, 32),
-            MetricBlock(32, 32),
-            nn.Conv3d(32, 1, 3, padding=1),
-        )
+        self.cost_volume_filter = CostVolumeFilter(batch_size, cost_volume_method=cost_volume_method)
 
         self.refine = nn.Sequential(
             nn.Conv2d(4, 32, 3, padding=1),
@@ -72,15 +89,17 @@ class StereoNet(nn.Module):
     def forward_once_2(self, cost_volume):
         """the index cost volume's dimension is not right for conv3d here, so we change it"""
         cost_volume = cost_volume.permute([0, 2, 1, 3, 4])
-
-        # output = self.cost_volume_filter(cost_volume)  # [batch_size, channel, disparity, h, w]
+        print(cost_volume.size())
+        output = self.cost_volume_filter(cost_volume)  # [batch_size, channel, disparity, h, w]
+        print(output.size())
         output = cost_volume[:, 0:1, :, :, :]
         disparity_low = output
 
         return disparity_low  # low resolution disparity map
 
     def forward_stage2(self, feature_l, feature_r):
-        cost_v_l = CostVolume(feature_l, feature_r, "left", method=self.cost_volume_method, k=4, batch_size=self.batch_size)
+        cost_v_l = CostVolume(feature_l, feature_r, "left", method=self.cost_volume_method, k=4,
+                              batch_size=self.batch_size)
 
         disparity_low = self.forward_once_2(cost_v_l)
         disparity_low = torch.squeeze(disparity_low, dim=1)
@@ -89,7 +108,8 @@ class StereoNet(nn.Module):
 
     def forward_stage3(self, disparity_low, left):
         """upsample and concatenate"""
-        d_high = nn.functional.interpolate(disparity_low, [left.shape[2], left.shape[3]], mode='bilinear', align_corners=True)
+        d_high = nn.functional.interpolate(disparity_low, [left.shape[2], left.shape[3]], mode='bilinear',
+                                           align_corners=True)
         d_high = soft_argmin(d_high)
 
         d_concat = torch.cat([d_high, left], dim=1)
@@ -113,11 +133,12 @@ class StereoNet(nn.Module):
 
         return d_final_l
 
+
 class MetricBlock(nn.Module):
-    def __init__(self, in_channel, out_channel, stride = 1):
+    def __init__(self, in_channel, out_channel, stride=1):
         super(MetricBlock, self).__init__()
-        self.conv3d_1 = nn.Conv3d(in_channel, out_channel, 3, 1, 1)
-        self.bn1 = nn.BatchNorm3d(out_channel)
+        self.conv3d_1 = nn.Conv2d(in_channel, out_channel, 3, 1, 1)
+        self.bn1 = nn.BatchNorm2d(out_channel)
         self.relu = nn.LeakyReLU(inplace=True)
 
     def forward(self, x):
@@ -141,7 +162,7 @@ class ResBlock(nn.Module):
         padding = dilation
 
         self.conv1 = nn.Conv2d(in_channel, out_channel, kernel_size=3, stride=stride,
-                     padding=padding, dilation=dilation, bias=False)
+                               padding=padding, dilation=dilation, bias=False)
         self.bn1 = nn.BatchNorm2d(out_channel)
         self.relu1 = nn.LeakyReLU(negative_slope=0.2, inplace=True)
 
@@ -183,13 +204,11 @@ def soft_argmin(cost_volume):
 
     d_grid = torch.arange(cost_volume.shape[1], dtype=torch.float)
     d_grid = d_grid.reshape(-1, 1, 1)
-    d_grid = d_grid.repeat((cost_volume.shape[0], 1, cost_volume.shape[2], cost_volume.shape[3])) # [batchSize, 1, h, w]
+    d_grid = d_grid.repeat(
+        (cost_volume.shape[0], 1, cost_volume.shape[2], cost_volume.shape[3]))  # [batchSize, 1, h, w]
     d_grid = d_grid.to('cuda')
 
-    tmp = disparity_softmax*d_grid
+    tmp = disparity_softmax * d_grid
     arg_soft_min = torch.sum(tmp, dim=1, keepdim=True)
 
     return arg_soft_min
-
-
-

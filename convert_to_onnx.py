@@ -59,7 +59,7 @@ model.cuda()
 if args.loadmodel is not None:
     print('load net')
     checkpoint = torch.load(args.loadmodel)
-    model.load_state_dict(checkpoint['state_dict'], strict=False)
+    # model.load_state_dict(checkpoint['state_dict'], strict=False)
 
 print('Number of model parameters: {}'.format(sum([p.data.nelement() for p in model.parameters()])))
 
