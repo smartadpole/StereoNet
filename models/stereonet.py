@@ -73,8 +73,8 @@ class StereoNet(nn.Module):
         """the index cost volume's dimension is not right for conv3d here, so we change it"""
         cost_volume = cost_volume.permute([0, 2, 1, 3, 4])
 
-        # output = self.cost_volume_filter(cost_volume)  # [batch_size, channel, disparity, h, w]
-        output = cost_volume[:, 0:1, :, :, :]
+        output = self.cost_volume_filter(cost_volume)  # [batch_size, channel, disparity, h, w]
+        # output = cost_volume[:, 0:1, :, :, :]
         disparity_low = output
 
         return disparity_low  # low resolution disparity map
