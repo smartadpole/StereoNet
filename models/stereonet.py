@@ -3,10 +3,36 @@ import torch
 import torch.nn.functional as F
 from utils.cost_volume import CostVolume
 
-
-class CostVolumeFilter(nn.Module):
+class Filter3D(nn.Module):
     def __init__(self, batch_size, cost_volume_method):
-        super(CostVolumeFilter, self).__init__()
+        super(Filter3D, self).__init__()
+        """ using 3d conv to instead the Euclidean distance"""
+
+        self.cost_volume_method = cost_volume_method
+        cost_volume_channel = 32
+        if cost_volume_method == "subtract":
+            cost_volume_channel = 32
+        elif cost_volume_method == "concat":
+            cost_volume_channel = 64
+        else:
+            print("cost_volume_method is not right")
+
+        self.cost_volume_filter = nn.Sequential(
+            MetricBlock3D(cost_volume_channel, 32),
+            MetricBlock3D(32, 32),
+            MetricBlock3D(32, 32),
+            MetricBlock3D(32, 32),
+            nn.Conv3d(32, 1, 3, padding=1),
+        )
+
+    def forward(self, x):
+        x = self.cost_volume_filter(x)
+
+        return x
+
+class Filter2D(nn.Module):
+    def __init__(self, batch_size, cost_volume_method):
+        super(Filter2D, self).__init__()
         """ using 3d conv to instead the Euclidean distance"""
 
         self.cost_volume_method = cost_volume_method
@@ -20,10 +46,10 @@ class CostVolumeFilter(nn.Module):
 
         cost_volume_channel *= 12
         self.cost_volume_filter = nn.Sequential(
-            MetricBlock(cost_volume_channel, 32),
-            MetricBlock(32, 32),
-            MetricBlock(32, 32),
-            MetricBlock(32, 32),
+            MetricBlock2D(cost_volume_channel, 32),
+            MetricBlock2D(32, 32),
+            MetricBlock2D(32, 32),
+            MetricBlock2D(32, 32),
             nn.Conv2d(32, 12, 3, padding=1),
         )
 
@@ -34,9 +60,21 @@ class CostVolumeFilter(nn.Module):
 
         return x
 
+FILTER = {
+    '3d': Filter3D
+    , '2d': Filter2D
+    , 'tsm': Filter2D
+}
 
 class StereoNet(nn.Module):
-    def __init__(self, batch_size, cost_volume_method):
+    def __init__(self, batch_size, cost_volume_method, conv3d_type="3d"):
+        """
+
+        Args:
+            batch_size:
+            cost_volume_method:
+            conv3d_type: 3d, 2d, tsm
+        """
         super(StereoNet, self).__init__()
 
         self.batch_size = batch_size
@@ -59,7 +97,7 @@ class StereoNet(nn.Module):
             nn.Conv2d(32, 32, 3, 1, 1),
         )
 
-        self.cost_volume_filter = CostVolumeFilter(batch_size, cost_volume_method=cost_volume_method)
+        self.cost_volume_filter = FILTER[conv3d_type](batch_size, cost_volume_method=cost_volume_method)
 
         self.refine = nn.Sequential(
             nn.Conv2d(4, 32, 3, padding=1),
@@ -89,10 +127,7 @@ class StereoNet(nn.Module):
     def forward_once_2(self, cost_volume):
         """the index cost volume's dimension is not right for conv3d here, so we change it"""
         cost_volume = cost_volume.permute([0, 2, 1, 3, 4])
-        print(cost_volume.size())
         output = self.cost_volume_filter(cost_volume)  # [batch_size, channel, disparity, h, w]
-        print(output.size())
-        output = cost_volume[:, 0:1, :, :, :]
         disparity_low = output
 
         return disparity_low  # low resolution disparity map
@@ -133,10 +168,22 @@ class StereoNet(nn.Module):
 
         return d_final_l
 
-
-class MetricBlock(nn.Module):
+class MetricBlock3D(nn.Module):
     def __init__(self, in_channel, out_channel, stride=1):
-        super(MetricBlock, self).__init__()
+        super(MetricBlock3D, self).__init__()
+        self.conv3d_1 = nn.Conv3d(in_channel, out_channel, 3, 1, 1)
+        self.bn1 = nn.BatchNorm3d(out_channel)
+        self.relu = nn.LeakyReLU(inplace=True)
+
+    def forward(self, x):
+        out = self.conv3d_1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+        return out
+
+class MetricBlock2D(nn.Module):
+    def __init__(self, in_channel, out_channel, stride=1):
+        super(MetricBlock2D, self).__init__()
         self.conv3d_1 = nn.Conv2d(in_channel, out_channel, 3, 1, 1)
         self.bn1 = nn.BatchNorm2d(out_channel)
         self.relu = nn.LeakyReLU(inplace=True)
