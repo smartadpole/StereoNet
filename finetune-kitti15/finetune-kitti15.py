@@ -197,7 +197,7 @@ def main():
         message = 'epoch %d: ' % epoch
         message += " lr = %f" % lr
 
-        message += 'epoch %d average training loss = %.3f' % (epoch, total_train_loss/len(TrainImgLoader))
+        message += ', average training loss = %.3f' % (total_train_loss/len(TrainImgLoader))
 
         ## Test ##
         for batch_idx, (imgL, imgR, disp_L) in enumerate(TestImgLoader):
@@ -207,15 +207,15 @@ def main():
         message += ', total 3-px error in val = %.3f' %(total_test_three_pixel_error_rate/len(TestImgLoader)*100)
 
         acc = (1-total_test_three_pixel_error_rate/len(TestImgLoader))*100
+        if epoch % args.save_step == 0:
+            savefilename = os.path.join(args.savemodel, 'checkpoints', 'checkpoint_{}.tar'.format(epoch))
+            save_model(epoch, total_train_loss, max_acc, max_epo, savefilename)
+
+        file_latest = os.path.join(args.savemodel, 'checkpoints', 'latest.tar')
+        save_model(epoch, total_train_loss, max_acc, max_epo, file_latest)
         if acc > max_acc:
             max_acc = acc
             max_epo = epoch
-
-            if epoch % args.save_step == 0:
-                savefilename = os.path.join(args.savemodel, 'checkpoints', 'checkpoint_{}.tar'.format(epoch))
-                save_model(epoch, total_train_loss, max_acc, max_epo, savefilename)
-            file_latest = os.path.join(args.savemodel, 'checkpoints', 'latest.tar')
-            save_model(epoch, total_train_loss, max_acc, max_epo, file_latest)
 
         message += ' ,MAX epoch %d test 3 pixel correct rate = %.3f' %(max_epo, max_acc)
         print(message)
