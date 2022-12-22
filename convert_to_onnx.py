@@ -50,7 +50,7 @@ torch.manual_seed(args.seed)
 if args.cuda:
     torch.cuda.manual_seed(args.seed)
 
-model = StereoNet(batch_size=1, cost_volume_method = "subtract")
+model = StereoNet(batch_size=1, cost_volume_method = "subtract", conv3d_type='2d')
 model_name = 'StereoNet'
 
 model = nn.DataParallel(model, device_ids=[0])
