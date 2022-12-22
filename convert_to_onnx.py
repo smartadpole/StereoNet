@@ -126,24 +126,32 @@ def main():
     imgL_o = Image.open(args.leftimg).convert('RGB')
     imgR_o = Image.open(args.rightimg).convert('RGB')
 
+    w, h = imgL_o.size
+    tw, th = 320, 200
+    imgL_o = imgL_o.resize((tw, th))
+    imgR_o = imgR_o.resize((tw, th))
+
     imgL = infer_transform(imgL_o)
     imgR = infer_transform(imgR_o)
+    #
+    # # pad to width and hight to 16 times
+    # if imgL.shape[1] % 16 != 0:
+    #     times = imgL.shape[1] // 16
+    #     top_pad = (times + 1) * 16 - imgL.shape[1]
+    # else:
+    #     top_pad = 0
+    #
+    # if imgL.shape[2] % 16 != 0:
+    #     times = imgL.shape[2] // 16
+    #     right_pad = (times + 1) * 16 - imgL.shape[2]
+    # else:
+    #     right_pad = 0
+    #
+    # imgL = F.pad(imgL, (0, right_pad, top_pad, 0)).unsqueeze(0)
+    # imgR = F.pad(imgR, (0, right_pad, top_pad, 0)).unsqueeze(0)
 
-    # pad to width and hight to 16 times
-    if imgL.shape[1] % 16 != 0:
-        times = imgL.shape[1] // 16
-        top_pad = (times + 1) * 16 - imgL.shape[1]
-    else:
-        top_pad = 0
-
-    if imgL.shape[2] % 16 != 0:
-        times = imgL.shape[2] // 16
-        right_pad = (times + 1) * 16 - imgL.shape[2]
-    else:
-        right_pad = 0
-
-    imgL = F.pad(imgL, (0, right_pad, top_pad, 0)).unsqueeze(0)
-    imgR = F.pad(imgR, (0, right_pad, top_pad, 0)).unsqueeze(0)
+    imgL = torch.unsqueeze(imgL, dim=0)
+    imgR = torch.unsqueeze(imgR, dim=0)
 
     start_time = time.time()
     pred_disp = test(imgL, imgR)
