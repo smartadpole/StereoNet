@@ -13,7 +13,7 @@ from models.stereonet import StereoNet
 import cv2
 import re
 
-DATA_TYPE = ['kitti', 'indemind', 'depth', 'i18R']
+DATA_TYPE = ['kitti', 'indemind', 'depth', 'i18R', 'kitti15']
 
 def GetArgs():
     parser = argparse.ArgumentParser(description='LaC')
@@ -86,6 +86,9 @@ def GetImages(path, flag='kitti'):
     if 'kitti' == flag:
         left_files = [f for f in paths if 'image_02' in f]
         right_files = [f.replace('/image_02/', '/image_03/') for f in left_files]
+    elif 'kitti15' == flag:
+        left_files = [f for f in paths if 'image_2' in f]
+        right_files = [f.replace('/image_2/', '/image_3/') for f in left_files]
     elif 'indemind' == flag:
         left_files = [f for f in paths if 'cam0' in f]
         right_files = [f.replace('/cam0/', '/cam1/') for f in left_files]
